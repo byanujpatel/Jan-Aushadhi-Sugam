@@ -9,8 +9,14 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
-// Set up JSON body size limit for base64 images
-app.use(express.json({ limit: "50mb" }));
+// Set up JSON body size limit for base64 images, made secure for Vercel where req.body is already consumed/parsed
+app.use((req, res, next) => {
+  if (req.body !== undefined) {
+    next();
+  } else {
+    express.json({ limit: "50mb" })(req, res, next);
+  }
+});
 
 // Initialize Gemini Client
 const apiKey = process.env.GEMINI_API_KEY;
