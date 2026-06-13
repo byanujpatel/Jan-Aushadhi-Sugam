@@ -1,0 +1,6 @@
+{
+  "name": "Generic Medicine Matcher",
+  "description": "Snaps prescriptions using Gemini Vision OCR, matches expensive brands with cheap generic salts, and searches for nearby Pradhan Mantri Jan Aushadhi pharmacies.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
