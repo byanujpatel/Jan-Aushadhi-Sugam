@@ -32,7 +32,9 @@ import {
   VolumeX,
   Key,
   Github,
-  Globe
+  Globe,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import PrescriptionScanner from "./components/PrescriptionScanner";
@@ -80,6 +82,7 @@ export default function App() {
     return localStorage.getItem("user_gemini_api_key") || "";
   });
   const [showConfigModal, setShowConfigModal] = useState<boolean>(false);
+  const [showKey, setShowKey] = useState<boolean>(false);
   const [configTab, setConfigTab] = useState<"api" | "github" | "vercel">("api");
 
   useEffect(() => {
@@ -538,52 +541,41 @@ export default function App() {
           <div className="flex items-center gap-2.5">
             <span className="text-xs font-bold uppercase tracking-wider text-teal-200 hidden md:inline">Rural Area Optimizations:</span>
             
-            {/* Regular Online mode */}
+            {/* Offline Mode Toggle Button (Zero-Data / 2G) */}
             <button
               onClick={() => {
-                setIsOffline(false);
-                setIsLowData(false);
-                speakVoice("Switched to live search database mode.");
+                if (isOffline) {
+                  setIsOffline(false);
+                  setIsLowData(false);
+                  speakVoice("Switched to live online database mode.");
+                } else {
+                  setIsOffline(true);
+                  setIsLowData(true);
+                  speakVoice("Offline zero data mode turned on. Matching directly from common drug database with zero internet bandwidth!");
+                }
               }}
-              className={`text-xs px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1 ${
-                (!isOffline && !isLowData) 
-                  ? "bg-teal-500 text-white shadow-sm" 
-                  : "bg-teal-800 text-teal-300 hover:bg-teal-750"
-              }`}
-            >
-              <Wifi className="w-3 h-3" />
-              <span>Normal Online</span>
-            </button>
-
-            {/* Offline 0-Data Mode */}
-            <button
-              onClick={() => {
-                setIsOffline(true);
-                setIsLowData(true);
-                speakVoice("Offline zero data mode turned on. Matching directly from common drug database with zero internet bandwidth!");
-              }}
-              className={`text-xs px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1 ${
+              className={`text-xs px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1.5 cursor-pointer ${
                 isOffline 
-                  ? "bg-amber-500 text-black shadow-sm font-black" 
+                  ? "bg-amber-550 text-black shadow-sm font-black" 
                   : "bg-teal-800 text-teal-300 hover:bg-teal-750"
               }`}
-              title="Search top 500 generics completely local with zero data"
+              title={isOffline ? "Currently Offline. Click to toggle Online Mode" : "Currently Online. Click to toggle Offline Mode"}
             >
-              <WifiOff className="w-3 h-3" />
-              <span>Offline Mode (Zero-Data / 2G)</span>
+              {isOffline ? <WifiOff className="w-3.5 h-3.5" /> : <Wifi className="w-3.5 h-3.5" />}
+              <span>{isOffline ? "Offline Mode: ON" : "Offline Mode: OFF"}</span>
             </button>
 
-            {/* API Key & Deployment Setup button */}
+            {/* Setup API Key button */}
             <button
               onClick={() => {
                 setShowConfigModal(true);
-                speakVoice("Opening deploy and api key settings.");
+                speakVoice("Opening API key configuration modal.");
               }}
               className="text-xs px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white shadow-sm border border-rose-500 cursor-pointer"
-              title="Add your Gemini API Key or learn how to deploy on GitHub & Vercel"
+              title="Add your personal Gemini API Key"
             >
               <Key className="w-3.5 h-3.5 text-rose-200" />
-              <span>Setup API & Deploy</span>
+              <span>Setup API Key</span>
             </button>
           </div>
         </div>
@@ -1160,7 +1152,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Setup API Key & Deployment Information Modal */}
+      {/* Setup API Key Modal */}
       <AnimatePresence>
         {showConfigModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
@@ -1168,207 +1160,141 @@ export default function App() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className={`w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden ${
+              className={`w-full max-w-md rounded-2xl shadow-2xl overflow-hidden ${
                 isHighContrast ? "bg-stone-900 border border-stone-700 text-stone-100" : "bg-white text-slate-800"
               }`}
             >
               {/* Header */}
-              <div className={`p-4 flex items-center justify-between border-b ${
+              <div className={`p-5 flex items-center justify-between border-b ${
                 isHighContrast ? "bg-stone-950 border-stone-800" : "bg-slate-50 border-slate-100"
               }`}>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <Key className="w-5 h-5 text-rose-500 animate-pulse" />
-                  <span className="font-extrabold text-base tracking-tight">API Key & Deployment Setup</span>
+                  <span className="font-extrabold text-base tracking-tight">Configure Gemini API Key</span>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setShowConfigModal(false)}
-                  className="text-xs font-bold px-3 py-1.5 rounded-full bg-slate-200 text-slate-800 hover:bg-slate-300 dark:bg-stone-800 dark:text-stone-100 dark:hover:bg-stone-700 transition cursor-pointer"
-                >
-                  ✕ Close
-                </button>
-              </div>
-
-              {/* Tabs list */}
-              <div className="grid grid-cols-3 border-b border-rose-100 dark:border-stone-850">
-                <button
-                  onClick={() => {
-                    setConfigTab("api");
-                    speakVoice("Custom api key settings tab loaded.");
-                  }}
-                  className={`py-3 text-xs font-bold transition-all border-b-2 flex items-center justify-center gap-1.5 cursor-pointer ${
-                    configTab === "api"
-                      ? "border-rose-500 text-rose-600 dark:text-rose-400"
-                      : "border-transparent text-slate-400 hover:text-slate-600"
+                  className={`text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center transition cursor-pointer ${
+                    isHighContrast 
+                      ? "bg-stone-850 text-stone-300 hover:bg-stone-800" 
+                      : "bg-slate-200/70 hover:bg-slate-300 text-slate-700"
                   }`}
+                  title="Close Modal"
                 >
-                  <Key className="w-3.5 h-3.5" />
-                  <span>Custom API Key</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setConfigTab("github");
-                    speakVoice("Github publication guide tab loaded.");
-                  }}
-                  className={`py-3 text-xs font-bold transition-all border-b-2 flex items-center justify-center gap-1.5 cursor-pointer ${
-                    configTab === "github"
-                      ? "border-rose-500 text-rose-600 dark:text-rose-400"
-                      : "border-transparent text-slate-400 hover:text-slate-600"
-                  }`}
-                >
-                  <Github className="w-3.5 h-3.5" />
-                  <span>Push to GitHub</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setConfigTab("vercel");
-                    speakVoice("Vercel production deployment tab loaded.");
-                  }}
-                  className={`py-3 text-xs font-bold transition-all border-b-2 flex items-center justify-center gap-1.5 cursor-pointer ${
-                    configTab === "vercel"
-                      ? "border-rose-500 text-rose-600 dark:text-rose-400"
-                      : "border-transparent text-slate-400 hover:text-slate-600"
-                  }`}
-                >
-                  <Globe className="w-3.5 h-3.5" />
-                  <span>Deploy to Vercel</span>
+                  ✕
                 </button>
               </div>
 
               {/* Tab Contents */}
-              <div className="p-6 overflow-y-auto max-h-[70vh] space-y-4 text-xs select-text">
-                {configTab === "api" && (
-                  <div className="space-y-4">
-                    <div className="p-3 bg-rose-50 border border-rose-100 dark:bg-rose-950/20 dark:border-rose-900/30 text-rose-900 dark:text-rose-200 rounded-xl space-y-1">
-                      <p className="font-bold">✨ Live API Customization Mode</p>
-                      <p className="leading-relaxed">
-                        By default, the server runs in normal mode. Adding your own key here allows you to bypass server quota limits entirely! The key is saved strictly in your own browser's storage and is only passed as a header to authorize dynamic Gemini Search Grounding.
-                      </p>
-                    </div>
+              <div className="p-6 space-y-5 text-xs">
+                <div className={`p-3.5 border rounded-xl space-y-1 ${
+                  isHighContrast ? "bg-rose-955/30 border-rose-900/40 text-rose-300" : "bg-rose-50 border-rose-100 text-rose-950"
+                }`}>
+                  <p className="font-bold flex items-center gap-1.5">
+                    <span>✨</span> Custom API Key Activation
+                  </p>
+                  <p className="leading-relaxed text-[11px] opacity-90">
+                    Pasting your personal API key runs queries directly through your own developer quota. The key is saved safely in your local browser storage and is never persisted on any external server.
+                  </p>
+                </div>
 
-                    <div className="space-y-2">
-                      <label className="block text-xs font-extrabold text-slate-700 dark:text-stone-300">
-                        Enter your Gemini API Key:
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="password"
-                          placeholder="AIzaSy..."
-                          value={customApiKey}
-                          onChange={(e) => setCustomApiKey(e.target.value)}
-                          className="flex-1 px-3 py-2 border rounded-xl font-mono text-xs focus:ring-1 focus:ring-rose-500 focus:outline-hidden dark:bg-stone-950 dark:border-stone-800"
-                        />
-                        {customApiKey && (
-                          <button
-                            onClick={() => {
-                              setCustomApiKey("");
-                              speakVoice("API Key cleared.");
-                            }}
-                            className="px-3 bg-slate-100 text-slate-800 hover:bg-slate-200 dark:bg-stone-850 dark:text-stone-200 rounded-xl font-extrabold transition cursor-pointer"
-                          >
-                            Clear
-                          </button>
-                        )}
-                      </div>
-                      <p className="text-[10px] text-slate-400">
-                        Get a free developer API Key from the Google AI Studio console. No credit card required.
-                      </p>
-                    </div>
-
-                    <div className="p-3.5 bg-slate-50 dark:bg-stone-950/40 rounded-xl space-y-1 border border-slate-100 dark:border-stone-850">
-                      <span className="font-bold">Active Configuration Status:</span>
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <span className={`w-2 h-2 rounded-full ${customApiKey ? "bg-emerald-500 animate-ping" : "bg-teal-500"}`} />
-                        <span className="font-mono">
-                          {customApiKey 
-                            ? `USING USER KEY (${customApiKey.substring(0, 7)}...${customApiKey.substring(customApiKey.length - 4)})`
-                            : "USING DEFAULT SERVER CONFIGURATION / OFFLINE FALLBACKS"}
-                        </span>
-                      </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className={`block text-xs font-bold ${
+                      isHighContrast ? "text-stone-300" : "text-slate-700"
+                    }`}>
+                      Enter Gemini API Key:
+                    </label>
+                    <a
+                      href="https://aistudio.google.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`${isHighContrast ? "text-rose-400 hover:text-rose-300" : "text-rose-600 hover:text-rose-700"} font-bold hover:underline`}
+                    >
+                      Get a Free Key →
+                    </a>
+                  </div>
+                  
+                  <div className="relative flex items-center">
+                    <input
+                      type={showKey ? "text" : "password"}
+                      placeholder="Paste your API key here (AIzaSy...)"
+                      value={customApiKey}
+                      onChange={(e) => setCustomApiKey(e.target.value)}
+                      className={`w-full pl-3.5 pr-24 py-2.5 border rounded-xl font-mono text-[11px] outline-hidden focus:ring-2 focus:ring-rose-500 ${
+                        isHighContrast 
+                          ? "bg-stone-950 border-stone-800 text-stone-100 placeholder-stone-600" 
+                          : "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400"
+                      }`}
+                    />
+                    <div className="absolute right-2 flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setShowKey(!showKey)}
+                        className={`p-1.5 transition cursor-pointer ${
+                          isHighContrast ? "text-stone-400 hover:text-stone-200" : "text-slate-400 hover:text-slate-600"
+                        }`}
+                        title={showKey ? "Hide API Key" : "Show API Key"}
+                      >
+                        {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                      {customApiKey && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomApiKey("");
+                            speakVoice("API Key cleared.");
+                          }}
+                          className={`text-[10px] px-2.5 py-1 rounded-md font-bold text-rose-600 transition cursor-pointer ${
+                            isHighContrast 
+                              ? "bg-stone-800 hover:bg-stone-750 text-rose-400" 
+                              : "bg-slate-100 hover:bg-slate-200 text-rose-600"
+                          }`}
+                        >
+                          Clear
+                        </button>
+                      )}
                     </div>
                   </div>
-                )}
+                  <p className="text-[10px] text-slate-400 leading-relaxed">
+                    Once pasted, toggle the eye icon to verify correct spelling. Ensure there are no leading or trailing spaces.
+                  </p>
+                </div>
 
-                {configTab === "github" && (
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <h4 className="font-bold">📤 Publishing your repository to GitHub</h4>
-                      <p className="text-slate-500">Follow these steps to upload this full-stack project to your GitHub account:</p>
-                    </div>
-
-                    <div className="space-y-3 font-mono bg-slate-900 text-slate-100 p-4 rounded-xl border border-slate-800 text-[11px] overflow-x-auto select-all">
-                      <p className="text-slate-500"># 1. Initialize repository and stage files</p>
-                      <p>git init</p>
-                      <p>git add .</p>
-                      <p>git commit -m "feat: initialize brand-new Jan Aushadhi medicine finder"</p>
-                      <p className="text-slate-500">{"\n"}# 2. Add remote origin to your personal GitHub repo</p>
-                      <p>git branch -M main</p>
-                      <p>git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git</p>
-                      <p className="text-slate-500">{"\n"}# 3. Push code to main branch</p>
-                      <p>git push -u origin main</p>
-                    </div>
-
-                    <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 text-amber-900 dark:text-amber-200 rounded-xl">
-                      💡 <strong>Note about Secrets:</strong> The `.gitignore` prevents environmental secrets from being pushed. Never publish actual API keys on public GitHub repositories!
-                    </div>
+                <div className={`p-4 rounded-xl space-y-1.5 border ${
+                  isHighContrast ? "bg-stone-955/30 border-stone-850" : "bg-slate-50 border-slate-100"
+                }`}>
+                  <span className={`font-bold text-[11px] uppercase tracking-wider ${
+                    isHighContrast ? "text-stone-400" : "text-slate-500"
+                  }`}>Active Connection Status:</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${customApiKey ? "bg-emerald-500 animate-pulse" : "bg-teal-500"}`} />
+                    <span className={`font-mono text-[10px] break-all ${
+                      isHighContrast ? "text-stone-300" : "text-slate-700"
+                    }`}>
+                      {customApiKey 
+                        ? `USING KEY: ${customApiKey.substring(0, 8)}...${customApiKey.substring(Math.max(0, customApiKey.length - 4))}`
+                        : "USING SERVER CONFIGURATION / OFFLINE MODE"}
+                    </span>
                   </div>
-                )}
-
-                {configTab === "vercel" && (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <h4 className="font-bold">⚡ Deploying to Vercel (Server + Client SPA)</h4>
-                      <p className="leading-relaxed">
-                        This repository is already completely pre-configured for Vercel using the pre-built <code className="px-1.5 py-0.5 bg-slate-100 dark:bg-stone-950 rounded font-mono">vercel.json</code> routing manifest. Vercel automatically deploys the backend as secure high-speed Serverless functions!
-                      </p>
-                    </div>
-
-                    <div className="space-y-3">
-                      <span className="font-bold text-slate-700 dark:text-stone-300">Step-by-step Vercel deployment:</span>
-                      <ol className="list-decimal pl-4 space-y-2.5 leading-relaxed text-slate-600 dark:text-stone-300">
-                        <li>
-                          Sign in to your <strong className="text-slate-800 dark:text-white">Vercel Dashboard</strong> (vercel.com) and link your GitHub account.
-                        </li>
-                        <li>
-                          Click <strong className="text-slate-800 dark:text-white">Add New &gt; Project</strong> and select the GitHub repository you pushed in the previous tab.
-                        </li>
-                        <li>
-                          Inside the Vercel project configuration menu, expand the <strong className="text-slate-800 dark:text-white">Environment Variables</strong> panel.
-                        </li>
-                        <li>
-                          Add a new variable: 
-                          <div className="mt-1 font-mono text-[11px] bg-slate-100 dark:bg-stone-950 p-2 rounded-md">
-                            Key: <span className="text-rose-500 font-bold">GEMINI_API_KEY</span><br />
-                            Value: <span className="text-slate-500">[Paste your real Google Gemini API Key here]</span>
-                          </div>
-                        </li>
-                        <li>
-                          Click <strong className="text-rose-600 font-bold">Deploy</strong>. Vercel will bundle the Vite assets, host the static files, and link the Express API endpoints automatically in under a minute!
-                        </li>
-                      </ol>
-                    </div>
-
-                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 text-emerald-900 dark:text-emerald-200 rounded-xl flex items-center gap-2">
-                      <span className="text-base">🚀</span>
-                      <p className="font-medium text-[11px]">
-                        Your app will be live on a secure, personal HTTPS subdomain (e.g. <span className="font-mono">yourproject.vercel.app</span>)!
-                      </p>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
 
               {/* Footer */}
               <div className={`p-4 border-t ${
                 isHighContrast ? "bg-stone-950 border-stone-800 text-stone-300" : "bg-slate-50 border-slate-100 text-slate-500"
               } text-[11px] flex justify-between items-center`}>
-                <span>Jan Aushadhi AI Module System</span>
+                <span>Jan Aushadhi AI Module</span>
                 <button
-                  onClick={() => setShowConfigModal(false)}
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition cursor-pointer"
+                  type="button"
+                  onClick={() => {
+                    setShowConfigModal(false);
+                    speakVoice("API key configured successfully.");
+                  }}
+                  className="px-4.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition cursor-pointer"
                 >
-                  Confirm Config
+                  Confirm & Save
                 </button>
               </div>
             </motion.div>
