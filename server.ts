@@ -821,7 +821,7 @@ Format the output strictly as a JSON array of objects conforming to this schema:
 
 // Configure Vite integration for building/serving frontend SPA
 async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
     // Development Mode
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -839,11 +839,15 @@ async function startServer() {
     console.log("Production static files mounted.");
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Generic Medicine Matcher backend running on http://0.0.0.0:${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Generic Medicine Matcher backend running on http://0.0.0.0:${PORT}`);
+    });
+  }
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
 
 export default app;
