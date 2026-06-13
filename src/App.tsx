@@ -53,10 +53,6 @@ export default function App() {
   const [isSearchingStores, setIsSearchingStores] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
 
-  // Network & Low-Data Modes (Works offline/rural area)
-  const [isOffline, setIsOffline] = useState<boolean>(false);
-  const [isLowData, setIsLowData] = useState<boolean>(false);
-
   // Savings Wallet & Cashback State (Persisted in localStorage)
   const [walletBalance, setWalletBalance] = useState<number>(() => {
     const saved = localStorage.getItem("jan_aushadhi_wallet_balance");
@@ -136,100 +132,6 @@ export default function App() {
     setMatchResult(null);
     setErrorText(null);
     
-    // OFFLINE MODE / 2G ZERO-DATA MODE: Bypass server request entirely
-    if (isOffline || isLowData) {
-      setTimeout(() => {
-        let selectedMeds: { brandName: string; strength: string }[] = [];
-        
-        // Map samples directly for quick, offline demonstration
-        if (demoPresetId === "sample1") {
-          selectedMeds = [
-            { brandName: "Augmentin", strength: "625 Duo" },
-            { brandName: "Dolo", strength: "650mg" }
-          ];
-        } else if (demoPresetId === "sample2") {
-          selectedMeds = [
-            { brandName: "Lipitor", strength: "10mg" },
-            { brandName: "Pan-D", strength: "Standard" }
-          ];
-        } else if (demoPresetId === "sample3") {
-          selectedMeds = [
-            { brandName: "Ultracet", strength: "Standard" },
-            { brandName: "Pantocid", strength: "40mg" }
-          ];
-        } else {
-          // If custom photos uploaded offline, fallback to standard common drugs to match
-          selectedMeds = [
-            { brandName: "Augmentin", strength: "625 Duo" },
-            { brandName: "Dolo", strength: "650mg" }
-          ];
-        }
-
-        const processedMeds = selectedMeds.map(med => {
-          const match = localMatchMedicine(med.brandName);
-          if (match) {
-            return {
-              prescribed: { brandName: med.brandName, strength: med.strength },
-              matchedGeneric: {
-                brandName: match.brandName,
-                strength: match.strength,
-                chemicalSalt: match.chemicalSalt,
-                janAushadhiName: match.janAushadhiName,
-                brandedPriceEstimate: match.brandedPrice,
-                janAushadhiPriceEstimate: match.janAushadhiPrice,
-                savingsPercentage: match.savingsPercentage,
-                inventoryStatus: "Available (Offline DB)",
-                indications: match.indications,
-                dosageAdvice: match.dosageAdvice,
-                searchSources: [
-                  { title: "PMBJP Offline Medicine Directory (Built-in)", url: "https://janaushadhi.gov.in" }
-                ]
-              },
-              status: "matched"
-            };
-          }
-          return {
-            prescribed: { brandName: med.brandName, strength: med.strength },
-            matchedGeneric: {
-              brandName: med.brandName,
-              strength: med.strength,
-              chemicalSalt: "Active Salt (Consult Chemist)",
-              janAushadhiName: "Jan Aushadhi Generic Substitute",
-              brandedPriceEstimate: 120,
-              janAushadhiPriceEstimate: 30,
-              savingsPercentage: 75,
-              inventoryStatus: "Check Locally",
-              indications: "General pharmacological compound subclass.",
-              dosageAdvice: "Show generic active chemical salt text to your registered pharmacist to dispatch corresponding substitute.",
-              searchSources: [
-                { title: "PMBJP Government Catalog", url: "https://janaushadhi.gov.in" }
-              ]
-            }
-          };
-        });
-
-        // Calculate totals
-        let brandedTotal = 0;
-        let janAushadhiTotal = 0;
-        processedMeds.forEach(item => {
-          brandedTotal += item.matchedGeneric.brandedPriceEstimate;
-          janAushadhiTotal += item.matchedGeneric.janAushadhiPriceEstimate;
-        });
-        const pctSaved = Math.round(((brandedTotal - janAushadhiTotal) / brandedTotal) * 100);
-
-        setMatchResult({
-          medicines: processedMeds as any,
-          totalSavingsEstimate: { brandedTotal, janAushadhiTotal, pctSaved }
-        });
-        setIsLoading(false);
-
-        // Award dynamic 1% scan cashback on offline matching!
-        creditCashback(janAushadhiTotal, brandedTotal);
-
-      }, 800); // Quick sub-second realistic responsive local computation
-      return;
-    }
-
     // ONLINE MODE
     try {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -271,87 +173,6 @@ export default function App() {
     setMatchResult(null);
     setErrorText(null);
 
-    // OFFLINE MODE / 2G ZERO-DATA MODE: Direct instant check
-    if (isOffline || isLowData) {
-      setTimeout(() => {
-        const match = localMatchMedicine(name);
-        if (match) {
-          const matchedGeneric = {
-            brandName: match.brandName,
-            strength: match.strength,
-            chemicalSalt: match.chemicalSalt,
-            janAushadhiName: match.janAushadhiName,
-            brandedPriceEstimate: match.brandedPrice,
-            janAushadhiPriceEstimate: match.janAushadhiPrice,
-            savingsPercentage: match.savingsPercentage,
-            inventoryStatus: "Available (Offline DB)",
-            indications: match.indications,
-            dosageAdvice: match.dosageAdvice,
-            searchSources: [
-              { title: "Local Offline Micro Database Index", url: "https://janaushadhi.gov.in" }
-            ]
-          };
-
-          setMatchResult({
-            medicines: [
-              {
-                prescribed: { brandName: name, strength: strength || match.strength },
-                matchedGeneric,
-                status: "matched"
-              }
-            ],
-            totalSavingsEstimate: {
-              brandedTotal: match.brandedPrice,
-              janAushadhiTotal: match.janAushadhiPrice,
-              pctSaved: match.savingsPercentage
-            }
-          });
-
-          creditCashback(match.janAushadhiPrice, match.brandedPrice);
-        } else {
-          // If not in standard common generics list, fallback to a safe chemical estimate offline
-          const fallbackBranded = 95;
-          const fallbackGeneric = 22;
-          const fallbackSavings = 77;
-
-          const matchedGeneric = {
-            brandName: name,
-            strength: strength || "Standard",
-            chemicalSalt: `Active salt combination for ${name}`,
-            janAushadhiName: `PMJAK generic alternative matching ${name}`,
-            brandedPriceEstimate: fallbackBranded,
-            janAushadhiPriceEstimate: fallbackGeneric,
-            savingsPercentage: fallbackSavings,
-            inventoryStatus: "Verified Offline Alternate",
-            indications: "Assigned medical therapeutic categorisation subclass.",
-            dosageAdvice: "Present this active salt name to a Jan Aushadhi Kendra pharmacy.",
-            searchSources: [
-              { title: "PMBJP National Reference", url: "https://janaushadhi.gov.in" }
-            ]
-          };
-
-          setMatchResult({
-            medicines: [
-              {
-                prescribed: { brandName: name, strength: strength || "Standard" },
-                matchedGeneric,
-                status: "matched"
-              }
-            ],
-            totalSavingsEstimate: {
-              brandedTotal: fallbackBranded,
-              janAushadhiTotal: fallbackGeneric,
-              pctSaved: fallbackSavings
-            }
-          });
-
-          creditCashback(fallbackGeneric, fallbackBranded);
-        }
-        setIsLoading(false);
-      }, 400);
-      return;
-    }
-
     try {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (customApiKey) {
@@ -388,30 +209,6 @@ export default function App() {
   const handleSearchStores = async (query: string): Promise<PharmacyStore[]> => {
     setIsSearchingStores(true);
     setErrorText(null);
-
-    // If completely offline, use fast mock list
-    if (isOffline) {
-      setTimeout(() => {
-        const normalized = query.toLowerCase();
-        let list = [
-          {
-            name: `Pradhan Mantri Bhartiya Janaushadhi Kendra - Rural Branch`,
-            address: `No. 45, Gram Panchayat Building, Near Bus-Stand, ${query || "Local District"}, India`,
-            phone: "+91 99000 88776",
-            distance: "0.8 km"
-          },
-          {
-            name: `Jan Aushadhi Generic Pharmacy - Civil Hospital Ward`,
-            address: `Block B Internal Walkway, Government Referral Hospital, ${query || "Local District"}, India`,
-            phone: "Not available",
-            distance: "1.5 km"
-          }
-        ];
-        setStores(list);
-        setIsSearchingStores(false);
-      }, 500);
-      return [];
-    }
 
     try {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -539,32 +336,6 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-teal-200 hidden md:inline">Rural Area Optimizations:</span>
-            
-            {/* Offline Mode Toggle Button (Zero-Data / 2G) */}
-            <button
-              onClick={() => {
-                if (isOffline) {
-                  setIsOffline(false);
-                  setIsLowData(false);
-                  speakVoice("Switched to live online database mode.");
-                } else {
-                  setIsOffline(true);
-                  setIsLowData(true);
-                  speakVoice("Offline zero data mode turned on. Matching directly from common drug database with zero internet bandwidth!");
-                }
-              }}
-              className={`text-xs px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                isOffline 
-                  ? "bg-amber-550 text-black shadow-sm font-black" 
-                  : "bg-teal-800 text-teal-300 hover:bg-teal-750"
-              }`}
-              title={isOffline ? "Currently Offline. Click to toggle Online Mode" : "Currently Online. Click to toggle Offline Mode"}
-            >
-              {isOffline ? <WifiOff className="w-3.5 h-3.5" /> : <Wifi className="w-3.5 h-3.5" />}
-              <span>{isOffline ? "Offline Mode: ON" : "Offline Mode: OFF"}</span>
-            </button>
-
             {/* Setup API Key button */}
             <button
               onClick={() => {
@@ -640,21 +411,6 @@ export default function App() {
       {/* Main Content Body */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 space-y-6">
         
-        {/* NETWORK & OFFLINE INFOBAR INDICATOR */}
-        {isOffline && (
-          <div className={`p-3 rounded-2xl flex items-center justify-between text-xs font-bold border ${
-            isHighContrast 
-              ? "bg-amber-500/10 border-amber-500 text-amber-400" 
-              : "bg-amber-50 border-amber-250 text-amber-800"
-          }`}>
-            <div className="flex items-center gap-2">
-              <WifiOff className="w-4 h-4 text-amber-500 animate-pulse" />
-              <span>Offline / 2G Low-Density Mode: Image analysis runs locally using client-side OCR. Data usage &lt; 0.1KB.</span>
-            </div>
-            <span className="hidden sm:inline bg-amber-500 text-stone-950 px-2 py-0.5 rounded text-[10px] uppercase">RURAL ACTIVE</span>
-          </div>
-        )}
-
         {/* HIGH-CONVENIENCE SAVINGS WALLET & CASHBACK HEADER PANEL */}
         <div className={`rounded-3xl p-6 border shadow-sm grid grid-cols-1 md:grid-cols-12 gap-6 items-center ${
           isHighContrast 
@@ -828,7 +584,7 @@ export default function App() {
                   </div>
                   <div className="space-y-1">
                     <h4 className="text-sm font-bold text-slate-700 animate-pulse">
-                      {isOffline ? "Analysing locally via Offline Database..." : "Consulting Indian Pharmacopeia & live APIs..."}
+                      Consulting Indian Pharmacopeia & live APIs...
                     </h4>
                     <p className="text-xs text-slate-400">Verifying prescription handwritten OCR text, retrieving active ingredients & branded average retail prices</p>
                   </div>
@@ -899,9 +655,7 @@ export default function App() {
                     <div className="flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0" />
                       <span>
-                        {isOffline 
-                          ? "Loaded locally from offline micro-database with exact therapeutic molecules matches."
-                          : "Matched via Google Search Grounding to live Indian Drug Database index."}
+                        Matched via Google Search Grounding to live Indian Drug Database index.
                       </span>
                     </div>
                     <button 
