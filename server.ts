@@ -2,7 +2,6 @@ import express from "express";
 import path from "path";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
-import { createServer as createViteServer } from "vite";
 
 // Load environment variables
 dotenv.config();
@@ -302,7 +301,7 @@ function getOfflineStores(query: string): any[] {
  * Endpoint 1: Match Medicine Prescription
  * Expects { image: "base64String", demoPresetId: "sample1" }
  */
-app.post("/api/match-prescription", async (req, res): Promise<any> => {
+app.post(["/api/match-prescription", "/match-prescription"], async (req, res): Promise<any> => {
   try {
     let base64Data = req.body.image;
     let mimeType = req.body.mimeType || "image/jpeg";
@@ -574,7 +573,7 @@ Format the output strictly as a JSON object matching this schema:
  * Endpoint 2: Direct Search Matching (Manual Entry)
  * Expects { name: "Dolo", strength: "650mg" }
  */
-app.post("/api/match-manual", async (req, res): Promise<any> => {
+app.post(["/api/match-manual", "/match-manual"], async (req, res): Promise<any> => {
   try {
     const { name, strength } = req.body;
     if (!name) {
@@ -747,7 +746,7 @@ Format the output strictly as a JSON object matching this schema:
  * Endpoint 3: Find Jan Aushadhi Kendra Stores
  * Expects { query: "Koramangala, Bangalore" }
  */
-app.post("/api/find-stores", async (req, res): Promise<any> => {
+app.post(["/api/find-stores", "/find-stores"], async (req, res): Promise<any> => {
   try {
     const { query } = req.body;
     if (!query) {
@@ -823,6 +822,7 @@ Format the output strictly as a JSON array of objects conforming to this schema:
 async function startServer() {
   if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
     // Development Mode
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
